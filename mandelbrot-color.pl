@@ -1,6 +1,6 @@
 use v6;
 
-my $height = 31;
+my $height = @*ARGS[0] // 31;
 my $width = $height;
 my $max_iterations = 50;
 

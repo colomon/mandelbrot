@@ -1,6 +1,6 @@
 use v6;
 
-my $height = 35;
+my $height = 31;
 my $width = $height;
 my $max_iterations = 50;
 
@@ -231,10 +231,10 @@ my @color_map = (
 sub mandel(Complex $c) {
     my $z = 0i;
     for ^$max_iterations {
-        return $_ if ($z.abs > 2);
+        return $_ + 1 if ($z.abs > 2);
         $z = $z * $z + $c;
     }
-    return $max_iterations;
+    return 0;
 }
 
 sub subdivide($low, $high, $count) {

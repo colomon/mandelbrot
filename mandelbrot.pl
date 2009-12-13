@@ -1,18 +1,19 @@
 use v6;
 
-my $height = 41;
-my $width = 41;
+my $height = @*ARGS[0] // 31;
+my $width = $height;
+my $max_iterations = 50;
 
 my $upper-right = -2 + (5/4)i;
 my $lower-left = 1/2 - (5/4)i;
 
 sub mandel(Complex $c) {
     my $z = 0i;
-    for ^50 {
-        return 0 if ($z.abs > 2);
+    for ^$max_iterations {
+        return 1 if ($z.abs > 2);
         $z = $z * $z + $c;
     }
-    return 1;
+    return 0;
 }
 
 sub subdivide($low, $high, $count) {

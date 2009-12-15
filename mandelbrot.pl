@@ -10,8 +10,8 @@ my $lower-left = 1/2 - (5/4)i;
 sub mandel(Complex $c) {
     my $z = 0i;
     for ^$max_iterations {
-        return 1 if ($z.abs > 2);
         $z = $z * $z + $c;
+        return 1 if ($z.abs > 2);
     }
     return 0;
 }

@@ -231,7 +231,9 @@ my @color_map = (
 sub mandel(Complex $c) {
     my $z = 0i;
     for ^$max_iterations {
-        return $_ + 1 if ($z.abs > 2);
+        if ($z.abs > 2) {
+            return $_ + 1;
+        }
         $z = $z * $z + $c;
     }
     return 0;
@@ -250,3 +252,5 @@ for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
     my $middle = @line.pop;
     (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
 }
+
+say "Done!";

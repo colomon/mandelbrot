@@ -1,6 +1,7 @@
 use v6;
 
 my $height = @*ARGS[0] // 31;
+$height = +$height;
 my $width = $height;
 my $max_iterations = 50;
 
@@ -252,5 +253,3 @@ for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
     my $middle = @line.pop;
     (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
 }
-
-say "Done!";

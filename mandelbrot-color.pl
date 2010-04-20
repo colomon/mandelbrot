@@ -246,7 +246,7 @@ sub subdivide($low, $high, $count) {
 
 say "P3";
 say "$width $height";
-say $max_iterations;
+say "255";
 
 for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
     my @line = subdivide($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2).map({ mandel($_) });

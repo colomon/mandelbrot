@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 use v6;
 
 my $height = @*ARGS[0] // 31;

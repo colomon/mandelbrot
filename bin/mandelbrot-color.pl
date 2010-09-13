@@ -5,8 +5,8 @@ $height = +$height;
 my $width = $height;
 my $max_iterations = 50;
 
-my $upper-right = -2 + (5/4)i;
-my $lower-left = 1/2 - (5/4)i;
+my $upper-right = -2.Num + (5/4.Num)i;
+my $lower-left = 1/2.Num - (5/4.Num)i;
 
 my @color_map = (
     "0 0 0",
@@ -231,9 +231,10 @@ my @color_map = (
 
 sub mandel(Complex $c) {
     my $z = 0i;
-    for ^$max_iterations {
+    my $i;
+    loop ($i = 0; $i < $max_iterations; $i++) {
         if ($z.abs > 2) {
-            return $_ + 1;
+            return $i + 1;
         }
         $z = $z * $z + $c;
     }
@@ -241,7 +242,7 @@ sub mandel(Complex $c) {
 }
 
 sub subdivide($low, $high, $count) {
-    (^$count).map({ $low + ($_ / ($count - 1)) * ($high - $low) });
+    (^$count).map({ $low + ($_.Num / ($count - 1)) * ($high - $low) });
 }
 
 say "P3";
@@ -253,3 +254,4 @@ for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
     my $middle = @line.pop;
     (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
 }
+

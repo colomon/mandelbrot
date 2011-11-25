@@ -261,6 +261,8 @@ sub DeleteEvent($obj, $args) {  #OK not used
     Application.Quit;
 };
 
+my %bitmaps;
+
 sub ExposeEvent($obj, $args)
 {
     $args;  # suppress "declared but not used" "Potential difficulties"
@@ -271,29 +273,38 @@ sub ExposeEvent($obj, $args)
     $window.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
 
     my $delta = ($lower-left.re - $upper-right.re) / $windowWidth;
+    
+    my $hash-tag = HashTag($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight);
+    unless %bitmaps{$hash-tag}:exists {
+        my $bytes = ByteArray.new($windowWidth * 3 * $windowHeight);
 
-    my $bytes = ByteArray.new($windowWidth * 3 * $windowHeight);
-
-    my $counter = 0;
-    my ($x, $y);
-    loop ($y = 0; $y < $windowHeight; $y++) {
-        my $c = $upper-right - $y * $delta * i;
-        loop ($x = 0; $x < $windowWidth; $x++) {
-            my $value = mandel($c);
-            $bytes.Set($counter++, @red[$value]);
-            $bytes.Set($counter++, @green[$value]);
-            $bytes.Set($counter++, @blue[$value]);
-            $c += $delta;
+        my $counter = 0;
+        my ($x, $y);
+        loop ($y = 0; $y < $windowHeight; $y++) {
+            my $c = $upper-right - $y * $delta * i;
+            loop ($x = 0; $x < $windowWidth; $x++) {
+                my $value = mandel($c);
+                $bytes.Set($counter++, @red[$value]);
+                $bytes.Set($counter++, @green[$value]);
+                $bytes.Set($counter++, @blue[$value]);
+                $c += $delta;
+            }
         }
+        
+        %bitmaps{$hash-tag} = $bytes;
     }
 
     my $gc = GdkGC.new($window);
     $window.DrawRgbImage($gc, $windowX, $windowY, $windowWidth, $windowHeight, 
-                         GdkRgbDither.Normal, $bytes, $windowWidth * 3);
+                         GdkRgbDither.Normal, %bitmaps{$hash-tag}, $windowWidth * 3);
     
     my $elapsed = time - $start-time;
     say "$elapsed seconds";
 };
+
+sub HashTag($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight) {
+     ($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight).join("~");
+}
 
 sub mandel(Complex $c) {
     my $z = 0i;

@@ -276,7 +276,7 @@ sub ExposeEvent($obj, $args)
             my $value = mandel($c);
             
             unless %colors{$value}:exists {
-                my $gc = GdkGC.new($obj.GdkWindow);
+                my $gc = GdkGC.new($window);
                 my $color = GdkColor.new(@red[$value], @green[$value], @blue[$value]);
                 $window.Colormap.AllocColor($color, False, True);
                 $gc.Foreground = $color;

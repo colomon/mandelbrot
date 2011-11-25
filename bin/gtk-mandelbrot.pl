@@ -263,7 +263,8 @@ sub ExposeEvent($obj, $args)
     
     my $start-time = time;
     my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
-    $obj.GdkWindow.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
+    my $window = $obj.GdkWindow;
+    $window.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
 
     my $delta-re = ($lower-left.re - $upper-right.re) / $windowWidth;
     my $delta-im = ($upper-right.im - $lower-left.im) / $windowHeight;
@@ -278,12 +279,12 @@ sub ExposeEvent($obj, $args)
             unless %colors{$value}:exists {
                 my $gc = GdkGC.new($obj.GdkWindow);
                 my $color = GdkColor.new(@red[$value], @green[$value], @blue[$value]);
-                $obj.GdkWindow.Colormap.AllocColor($color, False, True);
+                $window.Colormap.AllocColor($color, False, True);
                 $gc.Foreground = $color;
                 %colors{$value} = $gc;
             }
             
-            $obj.GdkWindow.DrawPoint(%colors{$value}, $x, $y);
+            $window.DrawPoint(%colors{$value}, $x, $y);
 
             $c += $delta-re;
         }

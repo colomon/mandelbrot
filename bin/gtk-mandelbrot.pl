@@ -1,16 +1,11 @@
 use v6;
 
-my $height = @*ARGS[0] // 1001;
-$height = +$height;
-my $width = $height;
+my $size = @*ARGS[0] // 321;
+$size = +$size;
 my $max_iterations = 50;
 
 my $upper-right = -2 + (5/4)i;
-my $upper-right-re = -2;
-my $upper-right-im = 5/4;
 my $lower-left = 1/2 - (5/4)i;
-my $lower-left-re = 1/2;
-my $lower-left-im = -5/4;
 
 my @color_map = (
     "0 0 0",
@@ -249,7 +244,7 @@ my @blue =  @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[2]) });
 
 Application.Init;
 my $window = Window.new("mandelbrot");
-my $windowSizeX = 321; my $windowSizeY = 321;
+my $windowSizeX = $size; my $windowSizeY = $size;
 $window.Resize($windowSizeX, $windowSizeY);  # TODO: resize at runtime NYI
 my $drawingarea = GtkDrawingArea.new;
 $drawingarea.add_ExposeEvent(&ExposeEvent);
@@ -270,8 +265,8 @@ sub ExposeEvent($obj, $args)
     my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
     $obj.GdkWindow.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
 
-    my $delta-re = ($lower-left-re - $upper-right-re) / $windowWidth;
-    my $delta-im = ($upper-right-im - $lower-left-im) / $windowHeight;
+    my $delta-re = ($lower-left.re - $upper-right.re) / $windowWidth;
+    my $delta-im = ($upper-right.im - $lower-left.im) / $windowHeight;
 
     my %colors;
 

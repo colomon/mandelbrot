@@ -270,22 +270,27 @@ sub ExposeEvent($obj, $args)
     my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
     $obj.GdkWindow.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
 
-    sub WhichComplex($x, $y) {
-        my $delta-re = $upper-right-re - $lower-left-re;
-        my $delta-im = $upper-right-im - $lower-left-im;
-        $upper-right - ($x / $windowWidth) * $delta-re
-                     - ($y / $windowHeight) * $delta-im * i;
-    }
+    my $delta-re = ($lower-left-re - $upper-right-re) / $windowWidth;
+    my $delta-im = ($upper-right-im - $lower-left-im) / $windowHeight;
+
+    my %colors;
 
     for 0 .. $windowHeight -> $y {
+        my $c = $upper-right - $y * $delta-im * i;
         for 0 .. $windowWidth -> $x {
-            my $c = WhichComplex($x, $y);
             my $value = mandel($c);
-            my $gc = GdkGC.new($obj.GdkWindow);
-            my $color = GdkColor.new(@red[$value], @green[$value], @blue[$value]);
-            $obj.GdkWindow.Colormap.AllocColor($color, False, True);
-            $gc.Foreground = $color;
-            $obj.GdkWindow.DrawPoint($gc, $x, $y);
+            
+            unless %colors{$value}:exists {
+                my $gc = GdkGC.new($obj.GdkWindow);
+                my $color = GdkColor.new(@red[$value], @green[$value], @blue[$value]);
+                $obj.GdkWindow.Colormap.AllocColor($color, False, True);
+                $gc.Foreground = $color;
+                %colors{$value} = $gc;
+            }
+            
+            $obj.GdkWindow.DrawPoint(%colors{$value}, $x, $y);
+
+            $c += $delta-re;
         }
     }
     

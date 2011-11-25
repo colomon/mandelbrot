@@ -310,7 +310,7 @@ sub mandel(Complex $c) {
     my $z = 0i;
     my $i;
     loop ($i = 0; $i < $max_iterations; $i++) {
-        if ($z.abs > 2) {
+        if $z.abs > 2 {
             return $i + 1;
         }
         $z = $z * $z + $c;

@@ -245,6 +245,8 @@ my @red =   @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[0]) });
 my @green = @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[1]) });
 my @blue =  @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[2]) });
 
+my %bitmaps;
+
 Application.Init;
 GdkRgb.Init;
 my $window = Window.new("mandelbrot");
@@ -260,8 +262,6 @@ Application.Run;  # end of main program, it's all over when this returns
 sub DeleteEvent($obj, $args) {  #OK not used
     Application.Quit;
 };
-
-my %bitmaps;
 
 sub ExposeEvent($obj, $args)
 {

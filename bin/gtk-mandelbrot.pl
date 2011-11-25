@@ -266,13 +266,12 @@ sub ExposeEvent($obj, $args)
     my $window = $obj.GdkWindow;
     $window.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
 
-    my $delta-re = ($lower-left.re - $upper-right.re) / $windowWidth;
-    my $delta-im = ($upper-right.im - $lower-left.im) / $windowHeight;
+    my $delta = ($lower-left.re - $upper-right.re) / $windowWidth;
 
     my %colors;
 
     for 0 .. $windowHeight -> $y {
-        my $c = $upper-right - $y * $delta-im * i;
+        my $c = $upper-right - $y * $delta * i;
         for 0 .. $windowWidth -> $x {
             my $value = mandel($c);
             
@@ -286,7 +285,7 @@ sub ExposeEvent($obj, $args)
             
             $window.DrawPoint(%colors{$value}, $x, $y);
 
-            $c += $delta-re;
+            $c += $delta;
         }
     }
     

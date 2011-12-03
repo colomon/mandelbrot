@@ -323,16 +323,6 @@ FractalSet.new(is-julia => True,
 
 Application.Run;  # end of main program, it's all over when this returns
 
-sub BuildWindow(Bool $is-julia,
-                Complex $upper-right,
-                Real $delta,
-                Int $width,
-                Int $height)
-{
-    my $set = FractalSet.new(:$is-julia, :$upper-right, :$delta, :$width, :$height);
-    $set.BuildWindow;
-}
-
 sub ButtonEvent($obj, $args) {  #OK not used
     given $args.Event.Button {
         when 3 { say "Create Julia now!"; }

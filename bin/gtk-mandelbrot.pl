@@ -309,8 +309,17 @@ class FractalSet {
 Application.Init;
 GdkRgb.Init;
 
-BuildWindow(False, $upper-right, ($lower-left.re - $upper-right.re) / $size, $size, $size);
-BuildWindow(False, $upper-right, ($lower-left.re - $upper-right.re) / 50, 50, 50);
+FractalSet.new(is-julia => False,
+               upper-right => $upper-right, 
+               delta => ($lower-left.re - $upper-right.re) / $size,
+               width => $size, 
+               height => $size).BuildWindow;
+FractalSet.new(is-julia => True,
+              upper-right => $upper-right, 
+              delta => ($lower-left.re - $upper-right.re) / $size,
+              width => $size, 
+              height => $size,
+              c => 0 + 0i).BuildWindow;
 
 Application.Run;  # end of main program, it's all over when this returns
 

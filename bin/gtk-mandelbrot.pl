@@ -267,7 +267,7 @@ class FractalSet {
             my $counter = 0;
             my ($x, $y);
             loop ($y = 0; $y < $.height; $y++) {
-                my $c = $upper-right - $y * $.delta * i;
+                my $c = $.upper-right - $y * $.delta * i;
                 loop ($x = 0; $x < $.width; $x++) {
                     my $value = $.is-julia ?? julia($.c, $c) !! mandel($c);
                     $.stored-byte-array.Set($counter++, @red[$value]);
@@ -314,18 +314,26 @@ FractalSet.new(is-julia => False,
                delta => ($lower-left.re - $upper-right.re) / $size,
                width => $size, 
                height => $size).BuildWindow;
-FractalSet.new(is-julia => True,
-              upper-right => $upper-right, 
-              delta => ($lower-left.re - $upper-right.re) / $size,
-              width => $size, 
-              height => $size,
-              c => 0 + 0i).BuildWindow;
 
 Application.Run;  # end of main program, it's all over when this returns
 
 sub ButtonEvent($obj, $args) {  #OK not used
+    my $index = $obj.GetData("Id").ToInt32();
+    my $set = @windows[$index];
+    
+    say $args.Event.WHAT;
+    say $args.Event.X;
+    say $args.Event.Y;
     given $args.Event.Button {
-        when 3 { say "Create Julia now!"; }
+        when 3 {
+            my $c = $set.upper-right + $args.Event.X * $set.delta - $args.Event.Y * $set.delta * i;
+            FractalSet.new(is-julia => True,
+                          upper-right => -5/4 + (5/4)i,
+                          delta => (5 / 2) / $size,
+                          width => $size, 
+                          height => $size,
+                          :$c).BuildWindow;
+        }
     }
 }
 

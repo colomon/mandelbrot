@@ -279,6 +279,8 @@ class FractalSet {
     }
      
     method GetByteArray() {
+        say "Upper: " ~ $.upper-right;
+        say "Delta: " ~ $.delta;
         unless $.stored-byte-array {
             my $start-time = time;
 
@@ -308,10 +310,11 @@ class FractalSet {
         my $index = +@windows;
         @windows.push(self);
         
-        my $window = Window.new($.is-julia ?? "julia" !! "mandelbrot");
+        my $window = Window.new($.is-julia ?? "julia $index" !! "mandelbrot $index");
         $window.Resize($.width, $.height);  # TODO: resize at runtime NYI
 
         my $event-box = GtkEventBox.new;
+        $event-box.SetData("Id", SystemIntPtr.new($index));
         $event-box.add_ButtonPressEvent(&ButtonPressEvent);
         $event-box.add_ButtonReleaseEvent(&ButtonReleaseEvent);
 
@@ -339,7 +342,6 @@ FractalSet.new(is-julia => False,
 Application.Run;  # end of main program, it's all over when this returns
 
 sub ButtonPressEvent($obj, $args) {  #OK not used
-    say "Pressed { $args.Event.Button }";
     my $index = $obj.GetData("Id").ToInt32();
     my $set = @windows[$index];
     
@@ -353,16 +355,19 @@ sub ButtonPressEvent($obj, $args) {  #OK not used
 
 
 sub ButtonReleaseEvent($obj, $args) {  #OK not used
-    say "Released { $args.Event.Button }";
-    
     my $index = $obj.GetData("Id").ToInt32();
     my $set = @windows[$index];
     
     given $args.Event.Button {
         when 1 {
             if $set.new-upper-right {
-                my $upper-right = $set.new-upper-right;
-                my $lower-left = $set.xy-to-c($args.Event.X, $args.Event.Y);
+                # my $upper-right = -2 + (5/4)i;
+                # my $lower-left = 1/2 - (5/4)i;
+                
+                my $c1 = $set.new-upper-right;
+                my $c2 = $set.xy-to-c($args.Event.X, $args.Event.Y);
+                my $upper-right = ($c1.re min $c2.re) + ($c1.im max $c2.im)i;
+                my $lower-left = ($c1.re max $c2.re) + ($c1.im min $c2.im)i;
                 my $height-ratio = ($upper-right.im - $lower-left.im) / ($lower-left.re - $upper-right.re);
                 FractalSet.new(is-julia => False,
                                upper-right => $upper-right, 

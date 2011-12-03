@@ -257,7 +257,27 @@ class FractalSet {
     has Int $.height;
     has Complex $.c;
     has $.stored-byte-array;
+    has $.new-upper-right;
     
+    method resize($width, $height) {
+        $.delta *= $.height / $height;
+        $.width = $width;
+        $.height = $height;
+        $.stored-byte-array = Any;
+    }
+    
+    method xy-to-c($x, $y) {
+        $.upper-right + $x * $.delta - $y * $.delta * i;
+    }   
+    
+    method RememberNewUpperRight($x, $y) {
+        $.new-upper-right = self.xy-to-c($x, $y);
+    }
+
+    method ForgetNewUpperRight() {
+        $.new-upper-right = Complex;
+    }
+     
     method GetByteArray() {
         unless $.stored-byte-array {
             my $start-time = time;
@@ -292,7 +312,8 @@ class FractalSet {
         $window.Resize($.width, $.height);  # TODO: resize at runtime NYI
 
         my $event-box = GtkEventBox.new;
-        $event-box.add_ButtonReleaseEvent(&ButtonEvent);
+        $event-box.add_ButtonPressEvent(&ButtonPressEvent);
+        $event-box.add_ButtonReleaseEvent(&ButtonReleaseEvent);
 
         my $drawingarea = GtkDrawingArea.new;
         $drawingarea.SetData("Id", SystemIntPtr.new($index));
@@ -317,24 +338,50 @@ FractalSet.new(is-julia => False,
 
 Application.Run;  # end of main program, it's all over when this returns
 
-sub ButtonEvent($obj, $args) {  #OK not used
+sub ButtonPressEvent($obj, $args) {  #OK not used
+    say "Pressed { $args.Event.Button }";
     my $index = $obj.GetData("Id").ToInt32();
     my $set = @windows[$index];
     
-    say $args.Event.WHAT;
-    say $args.Event.X;
-    say $args.Event.Y;
     given $args.Event.Button {
+        when 1 {
+            $set.RememberNewUpperRight($args.Event.X, $args.Event.Y);
+        }
+    }
+}
+
+
+
+sub ButtonReleaseEvent($obj, $args) {  #OK not used
+    say "Released { $args.Event.Button }";
+    
+    my $index = $obj.GetData("Id").ToInt32();
+    my $set = @windows[$index];
+    
+    given $args.Event.Button {
+        when 1 {
+            if $set.new-upper-right {
+                my $upper-right = $set.new-upper-right;
+                my $lower-left = $set.xy-to-c($args.Event.X, $args.Event.Y);
+                my $height-ratio = ($upper-right.im - $lower-left.im) / ($lower-left.re - $upper-right.re);
+                FractalSet.new(is-julia => False,
+                               upper-right => $upper-right, 
+                               delta => ($lower-left.re - $upper-right.re) / $size,
+                               width => ($size / $height-ratio).Int, 
+                               height => $size).BuildWindow;
+            }
+        }
         when 3 {
-            my $c = $set.upper-right + $args.Event.X * $set.delta - $args.Event.Y * $set.delta * i;
             FractalSet.new(is-julia => True,
                           upper-right => -5/4 + (5/4)i,
                           delta => (5 / 2) / $size,
                           width => $size, 
                           height => $size,
-                          :$c).BuildWindow;
+                          c => $set.xy-to-c($args.Event.X, $args.Event.Y)).BuildWindow;
         }
     }
+    
+    $set.ForgetNewUpperRight;
 }
 
 sub DeleteEvent($obj, $args) {  #OK not used

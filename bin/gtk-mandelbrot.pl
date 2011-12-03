@@ -240,34 +240,94 @@ constant GdkColor       = CLR::("Gdk.Color,$GDK");
 constant GtkDrawingArea = CLR::("Gtk.DrawingArea,$GTK");
 constant GtkEventBox    = CLR::("Gtk.EventBox,$GTK");
 constant SystemByte     = CLR::("System.Byte");
+constant SystemIntPtr   = CLR::("System.IntPtr");
 constant ByteArray      = CLR::("System.Byte[]");
 
 my @red =   @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[0]) });
 my @green = @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[1]) });
 my @blue =  @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[2]) });
 
-my %bitmaps;
+my @windows;
+
+class FractalSet {
+    has Bool $.is-julia;
+    has Complex $.upper-right;
+    has Real $.delta;
+    has Int $.width;
+    has Int $.height;
+    has Complex $.c;
+    has $.stored-byte-array;
+    
+    method GetByteArray() {
+        unless $.stored-byte-array {
+            my $start-time = time;
+
+            $.stored-byte-array = ByteArray.new($.width * 3 * $.height);
+
+            my $counter = 0;
+            my ($x, $y);
+            loop ($y = 0; $y < $.height; $y++) {
+                my $c = $upper-right - $y * $.delta * i;
+                loop ($x = 0; $x < $.width; $x++) {
+                    my $value = $.is-julia ?? julia($.c, $c) !! mandel($c);
+                    $.stored-byte-array.Set($counter++, @red[$value]);
+                    $.stored-byte-array.Set($counter++, @green[$value]);
+                    $.stored-byte-array.Set($counter++, @blue[$value]);
+                    $c += $.delta;
+                }
+            }
+
+            my $elapsed = time - $start-time;
+            say "$elapsed seconds";
+        }
+        $.stored-byte-array;
+    }
+    
+    method BuildWindow()
+    {
+        my $index = +@windows;
+        @windows.push(self);
+        
+        my $window = Window.new($.is-julia ?? "julia" !! "mandelbrot");
+        $window.Resize($.width, $.height);  # TODO: resize at runtime NYI
+
+        my $event-box = GtkEventBox.new;
+        $event-box.add_ButtonReleaseEvent(&ButtonEvent);
+
+        my $drawingarea = GtkDrawingArea.new;
+        $drawingarea.SetData("Id", SystemIntPtr.new($index));
+        $drawingarea.add_ExposeEvent(&ExposeEvent);
+        $window.add_DeleteEvent(&DeleteEvent);
+        $event-box.Add($drawingarea);
+
+        $window.Add($event-box);
+        $window.ShowAll;
+    }
+    
+}
 
 Application.Init;
 GdkRgb.Init;
-my $window = Window.new("mandelbrot");
-my $windowSizeX = $size; my $windowSizeY = $size;
-$window.Resize($windowSizeX, $windowSizeY);  # TODO: resize at runtime NYI
 
-my $event-box = GtkEventBox.new;
-$event-box.add_ButtonReleaseEvent(&ButtonEvent);
+BuildWindow(False, $upper-right, ($lower-left.re - $upper-right.re) / $size, $size, $size);
+BuildWindow(False, $upper-right, ($lower-left.re - $upper-right.re) / 50, 50, 50);
 
-my $drawingarea = GtkDrawingArea.new;
-$drawingarea.add_ExposeEvent(&ExposeEvent);
-$window.add_DeleteEvent(&DeleteEvent);
-$event-box.Add($drawingarea);
-
-$window.Add($event-box);
-$window.ShowAll;
 Application.Run;  # end of main program, it's all over when this returns
 
+sub BuildWindow(Bool $is-julia,
+                Complex $upper-right,
+                Real $delta,
+                Int $width,
+                Int $height)
+{
+    my $set = FractalSet.new(:$is-julia, :$upper-right, :$delta, :$width, :$height);
+    $set.BuildWindow;
+}
+
 sub ButtonEvent($obj, $args) {  #OK not used
-    say "Button";
+    given $args.Event.Button {
+        when 3 { say "Create Julia now!"; }
+    }
 }
 
 sub DeleteEvent($obj, $args) {  #OK not used
@@ -277,48 +337,35 @@ sub DeleteEvent($obj, $args) {  #OK not used
 sub ExposeEvent($obj, $args)
 {
     $args;  # suppress "declared but not used" "Potential difficulties"
+    my $index = $obj.GetData("Id").ToInt32();
+    my $set = @windows[$index];
     
-    my $start-time = time;
-    my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
     my $window = $obj.GdkWindow;
+    my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
     $window.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
-
-    my $delta = ($lower-left.re - $upper-right.re) / $windowWidth;
-    
-    my $hash-tag = HashTag($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight);
-    unless %bitmaps{$hash-tag}:exists {
-        my $bytes = ByteArray.new($windowWidth * 3 * $windowHeight);
-
-        my $counter = 0;
-        my ($x, $y);
-        loop ($y = 0; $y < $windowHeight; $y++) {
-            my $c = $upper-right - $y * $delta * i;
-            loop ($x = 0; $x < $windowWidth; $x++) {
-                my $value = mandel($c);
-                $bytes.Set($counter++, @red[$value]);
-                $bytes.Set($counter++, @green[$value]);
-                $bytes.Set($counter++, @blue[$value]);
-                $c += $delta;
-            }
-        }
-        
-        %bitmaps{$hash-tag} = $bytes;
+    if $windowHeight != $set.height || $windowWidth != $set.width {
+        $set.resize($windowWidth, $windowHeight);
     }
 
     my $gc = GdkGC.new($window);
     $window.DrawRgbImage($gc, $windowX, $windowY, $windowWidth, $windowHeight, 
-                         GdkRgbDither.Normal, %bitmaps{$hash-tag}, $windowWidth * 3);
-    
-    my $elapsed = time - $start-time;
-    say "$elapsed seconds";
+                         GdkRgbDither.Normal, $set.GetByteArray, $windowWidth * 3);
 };
-
-sub HashTag($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight) {
-     ($upper-right, $delta, $windowX, $windowY, $windowWidth, $windowHeight).join("~");
-}
 
 sub mandel(Complex $c) {
     my $z = 0i;
+    my $i;
+    loop ($i = 0; $i < $max_iterations; $i++) {
+        if $z.abs > 2 {
+            return $i + 1;
+        }
+        $z = $z * $z + $c;
+    }
+    return 0;
+}
+
+sub julia(Complex $c, Complex $z0) {
+    my $z = $z0;
     my $i;
     loop ($i = 0; $i < $max_iterations; $i++) {
         if $z.abs > 2 {

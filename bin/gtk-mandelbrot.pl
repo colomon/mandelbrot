@@ -238,6 +238,7 @@ constant GdkRgb         = CLR::("Gdk.Rgb,$GDK");
 constant GdkRgbDither   = CLR::("Gdk.RgbDither,$GDK");
 constant GdkColor       = CLR::("Gdk.Color,$GDK");
 constant GtkDrawingArea = CLR::("Gtk.DrawingArea,$GTK");
+constant GtkEventBox    = CLR::("Gtk.EventBox,$GTK");
 constant SystemByte     = CLR::("System.Byte");
 constant ByteArray      = CLR::("System.Byte[]");
 
@@ -252,12 +253,22 @@ GdkRgb.Init;
 my $window = Window.new("mandelbrot");
 my $windowSizeX = $size; my $windowSizeY = $size;
 $window.Resize($windowSizeX, $windowSizeY);  # TODO: resize at runtime NYI
+
+my $event-box = GtkEventBox.new;
+$event-box.add_ButtonReleaseEvent(&ButtonEvent);
+
 my $drawingarea = GtkDrawingArea.new;
 $drawingarea.add_ExposeEvent(&ExposeEvent);
 $window.add_DeleteEvent(&DeleteEvent);
-$window.Add($drawingarea);
+$event-box.Add($drawingarea);
+
+$window.Add($event-box);
 $window.ShowAll;
 Application.Run;  # end of main program, it's all over when this returns
+
+sub ButtonEvent($obj, $args) {  #OK not used
+    say "Button";
+}
 
 sub DeleteEvent($obj, $args) {  #OK not used
     Application.Quit;

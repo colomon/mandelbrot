@@ -386,11 +386,11 @@ class FractalSet {
         $.new-upper-right = Complex;
     }
 
-
     method BuildWindow()
     {
         my $index = +@windows;
         @windows.push(self);
+        self.start-work;
 
         my $window = Window.new($.is-julia ?? "julia $index" !! "mandelbrot $index");
         $window.Resize($.width, $.height);  # TODO: resize at runtime NYI

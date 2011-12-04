@@ -1,5 +1,7 @@
 use v6;
 
+use Threads;
+
 my $size = @*ARGS[0] // 321;
 $size = +$size;
 my $max_iterations = 50;
@@ -249,6 +251,57 @@ my @blue =  @color_map.map({ SystemByte.Parse($_.comb(/\d+/)[2]) });
 
 my @windows;
 
+class WorkQueue {
+    my $monitor = Monitor.new; # NIECZA no class attributes
+    method monitor() { $monitor }
+    my @queue;
+
+    method new() { self }
+
+    method push($item) {
+        $monitor.lock({
+            push @queue, $item;
+            $monitor.pulse;
+        });
+    }
+
+    method shift() {
+        $monitor.lock({
+            $monitor.wait until @queue;
+            shift @queue;
+        })
+    }
+
+    method run() {
+        loop {
+            my $item = self.shift;
+            next if $item.cancelled;
+            $item.run.();
+            $item.mark-done;
+        }
+    }
+}
+
+for ^(%*ENV<THREADS> // CLR::System::Environment.ProcessorCount) {
+    Thread.new({ WorkQueue.run });
+}
+
+class WorkItem {
+    has Bool $!done = False;
+    has Bool $!cancelled = False;
+
+    has Callable &.run;
+    has Callable &.done-cb;
+
+    method is-done() { WorkQueue.monitor.lock({ $!done }) }
+    method mark-done() {
+        &.done-cb.() unless WorkQueue.monitor.lock({ $!done++ })
+    }
+
+    method cancelled() { WorkQueue.monitor.lock({ $!cancelled }) }
+    method cancel() { WorkQueue.monitor.lock({ $!cancelled = True }) }
+}
+
 class FractalSet {
     has Bool $.is-julia;
     has Complex $.upper-right;
@@ -256,20 +309,75 @@ class FractalSet {
     has Int $.width;
     has Int $.height;
     has Complex $.c;
-    has $.stored-byte-array;
+    has @.rows;
+    has @.line-work-items;
     has $.new-upper-right;
-    
+
+    has $.draw-area;
+
+    method stop-work() {
+        for @.line-work-items { .cancel }
+        @.line-work-items = ();
+    }
+
+    method start-work() {
+        self.stop-work if @.line-work-items;
+
+        say "Upper: " ~ $.upper-right;
+        say "Delta: " ~ $.delta;
+
+        # make local copies of everything we need to avoid data races
+        my $julia-z0 = $.c;
+        my $is-julia = $.is-julia;
+        my $ur = $.upper-right;
+        my $width = $.width;
+        my $delta = $.delta;
+
+        my @rows = @.rows = ByteArray.new($width * 3) xx $.height;
+
+        my $y_;
+        loop ($y_ = 0; $y_ < $.height; $y_++) {
+            my $y = $y_;
+
+            sub row() {
+                my $row = @rows[$y];
+                my $counter = 0;
+                my $counter_end = $counter + 3 * $width;
+                my $c = $ur - $y * $delta * i;
+
+                while $counter < $counter_end {
+                    my $value = $is-julia ?? julia($julia-z0, $c) !! mandel($c);
+                    $row.Set($counter++, @red[$value]);
+                    $row.Set($counter++, @green[$value]);
+                    $row.Set($counter++, @blue[$value]);
+                    $c += $delta;
+                }
+            }
+
+            sub done() {
+                Application.Invoke(-> $ , $ {
+                    $.draw-area.QueueDrawArea(0, $y, $width, 1);
+                });
+            }
+
+            my $wi = WorkItem.new(run => &row, done-cb => &done);
+            WorkQueue.push($wi);
+            push @.line-work-items, $wi;
+        }
+    }
+
     method resize($width, $height) {
+        self.stop-work;
         $.delta *= $.height / $height;
         $.width = $width;
         $.height = $height;
-        $.stored-byte-array = Any;
+        self.start-work;
     }
-    
+
     method xy-to-c($x, $y) {
         $.upper-right + $x * $.delta - $y * $.delta * i;
-    }   
-    
+    }
+
     method RememberNewUpperRight($x, $y) {
         $.new-upper-right = self.xy-to-c($x, $y);
     }
@@ -277,39 +385,13 @@ class FractalSet {
     method ForgetNewUpperRight() {
         $.new-upper-right = Complex;
     }
-     
-    method GetByteArray() {
-        say "Upper: " ~ $.upper-right;
-        say "Delta: " ~ $.delta;
-        unless $.stored-byte-array {
-            my $start-time = time;
 
-            $.stored-byte-array = ByteArray.new($.width * 3 * $.height);
 
-            my $counter = 0;
-            my ($x, $y);
-            loop ($y = 0; $y < $.height; $y++) {
-                my $c = $.upper-right - $y * $.delta * i;
-                loop ($x = 0; $x < $.width; $x++) {
-                    my $value = $.is-julia ?? julia($.c, $c) !! mandel($c);
-                    $.stored-byte-array.Set($counter++, @red[$value]);
-                    $.stored-byte-array.Set($counter++, @green[$value]);
-                    $.stored-byte-array.Set($counter++, @blue[$value]);
-                    $c += $.delta;
-                }
-            }
-
-            my $elapsed = time - $start-time;
-            say "$elapsed seconds";
-        }
-        $.stored-byte-array;
-    }
-    
     method BuildWindow()
     {
         my $index = +@windows;
         @windows.push(self);
-        
+
         my $window = Window.new($.is-julia ?? "julia $index" !! "mandelbrot $index");
         $window.Resize($.width, $.height);  # TODO: resize at runtime NYI
 
@@ -318,7 +400,7 @@ class FractalSet {
         $event-box.add_ButtonPressEvent(&ButtonPressEvent);
         $event-box.add_ButtonReleaseEvent(&ButtonReleaseEvent);
 
-        my $drawingarea = GtkDrawingArea.new;
+        my $drawingarea = $.draw-area = GtkDrawingArea.new;
         $drawingarea.SetData("Id", SystemIntPtr.new($index));
         $drawingarea.add_ExposeEvent(&ExposeEvent);
         $window.add_DeleteEvent(&DeleteEvent);
@@ -327,7 +409,6 @@ class FractalSet {
         $window.Add($event-box);
         $window.ShowAll;
     }
-    
 }
 
 Application.Init;
@@ -393,12 +474,11 @@ sub DeleteEvent($obj, $args) {  #OK not used
     Application.Quit;
 };
 
-sub ExposeEvent($obj, $args)
+sub ExposeEvent($obj, $args) #OK not used
 {
-    $args;  # suppress "declared but not used" "Potential difficulties"
     my $index = $obj.GetData("Id").ToInt32();
     my $set = @windows[$index];
-    
+
     my $window = $obj.GdkWindow;
     my $windowX=0; my $windowY=0; my $windowWidth=0; my $windowHeight=0; my $windowDepth=0;
     $window.GetGeometry($windowX, $windowY, $windowWidth, $windowHeight, $windowDepth);
@@ -407,8 +487,16 @@ sub ExposeEvent($obj, $args)
     }
 
     my $gc = GdkGC.new($window);
-    $window.DrawRgbImage($gc, $windowX, $windowY, $windowWidth, $windowHeight, 
-                         GdkRgbDither.Normal, $set.GetByteArray, $windowWidth * 3);
+    for ^$windowHeight -> $y {
+        if $y < $set.line-work-items && $set.line-work-items[$y].is-done {
+            $window.DrawRgbImage($gc, $windowX, $windowY+$y, $windowWidth, 1,
+                GdkRgbDither.Normal, $set.rows[$y], $windowWidth * 3);
+        }
+        else {
+            $window.DrawRectangle($gc, True, $windowX, $windowY+$y,
+                $windowWidth, 1);
+        }
+    }
 };
 
 sub mandel(Complex $c) {

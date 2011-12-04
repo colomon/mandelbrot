@@ -267,7 +267,11 @@ class WorkQueue {
 
     method shift() {
         $monitor.lock({
-            $monitor.wait until @queue;
+            unless @queue {
+                say "Waiting for work at {times[0]}";
+                $monitor.wait until @queue;
+                say "Got work at {times[0]}";
+            }
             shift @queue;
         })
     }
@@ -474,7 +478,7 @@ sub DeleteEvent($obj, $args) {  #OK not used
     Application.Quit;
 };
 
-sub ExposeEvent($obj, $args) #OK not used
+sub ExposeEvent($obj, $args)
 {
     my $index = $obj.GetData("Id").ToInt32();
     my $set = @windows[$index];
@@ -487,7 +491,8 @@ sub ExposeEvent($obj, $args) #OK not used
     }
 
     my $gc = GdkGC.new($window);
-    for ^$windowHeight -> $y {
+    my $y0 = $args.Event.Area.Y - $windowY;
+    for $y0..^($y0+$args.Event.Area.Height) -> $y {
         if $y < $set.line-work-items && $set.line-work-items[$y].is-done {
             $window.DrawRgbImage($gc, $windowX, $windowY+$y, $windowWidth, 1,
                 GdkRgbDither.Normal, $set.rows[$y], $windowWidth * 3);

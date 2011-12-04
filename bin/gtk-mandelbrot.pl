@@ -238,15 +238,15 @@ class FractalSet {
         $.upper-right + $x * $.delta - $y * $.delta * i;
     }
 
-    method RememberNewUpperRight($x, $y) {
+    method remember-new-upper-right($x, $y) {
         $.new-upper-right = self.xy-to-c($x, $y);
     }
 
-    method ForgetNewUpperRight() {
+    method forget-new-upper-right() {
         $.new-upper-right = Complex;
     }
 
-    method BuildWindow()
+    method build-window()
     {
         my $index = +@windows;
         @windows.push(self);
@@ -278,7 +278,7 @@ FractalSet.new(is-julia => False,
                upper-right => $upper-right, 
                delta => ($lower-left.re - $upper-right.re) / $size,
                width => $size, 
-               height => $size).BuildWindow;
+               height => $size).build-window;
 
 Application.Run;  # end of main program, it's all over when this returns
 
@@ -288,12 +288,10 @@ sub ButtonPressEvent($obj, $args) {  #OK not used
     
     given $args.Event.Button {
         when 1 {
-            $set.RememberNewUpperRight($args.Event.X, $args.Event.Y);
+            $set.remember-new-upper-right($args.Event.X, $args.Event.Y);
         }
     }
 }
-
-
 
 sub ButtonReleaseEvent($obj, $args) {  #OK not used
     my $index = $obj.GetData("Id").ToInt32();
@@ -302,9 +300,6 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
     given $args.Event.Button {
         when 1 {
             if $set.new-upper-right {
-                # my $upper-right = -2 + (5/4)i;
-                # my $lower-left = 1/2 - (5/4)i;
-                
                 my $c1 = $set.new-upper-right;
                 my $c2 = $set.xy-to-c($args.Event.X, $args.Event.Y);
                 my $upper-right = ($c1.re min $c2.re) + ($c1.im max $c2.im)i;
@@ -314,7 +309,7 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
                                upper-right => $upper-right, 
                                delta => ($lower-left.re - $upper-right.re) / $size,
                                width => ($size / $height-ratio).Int, 
-                               height => $size).BuildWindow;
+                               height => $size).build-window;
             }
         }
         when 3 {
@@ -323,11 +318,11 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
                           delta => (5 / 2) / $size,
                           width => $size, 
                           height => $size,
-                          c => $set.xy-to-c($args.Event.X, $args.Event.Y)).BuildWindow;
+                          c => $set.xy-to-c($args.Event.X, $args.Event.Y)).build-window;
         }
     }
     
-    $set.ForgetNewUpperRight;
+    $set.forget-new-upper-right;
 }
 
 sub DeleteEvent($obj, $args) {  #OK not used

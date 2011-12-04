@@ -2,8 +2,7 @@ use v6;
 
 use Threads;
 
-my $size = @*ARGS[0] // 321;
-$size = +$size;
+my $size = +(@*ARGS[0] // 321);
 my $max_iterations = 128;
 
 my $upper-right = -2 + (5/4)i;
@@ -305,11 +304,13 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
                 my $upper-right = ($c1.re min $c2.re) + ($c1.im max $c2.im)i;
                 my $lower-left = ($c1.re max $c2.re) + ($c1.im min $c2.im)i;
                 my $height-ratio = ($upper-right.im - $lower-left.im) / ($lower-left.re - $upper-right.re);
-                FractalSet.new(is-julia => False,
-                               upper-right => $upper-right, 
-                               delta => ($lower-left.re - $upper-right.re) / $size,
-                               width => ($size / $height-ratio).Int, 
-                               height => $size).build-window;
+                if 0 < $height-ratio < 100 {
+                    FractalSet.new(is-julia => False,
+                                   upper-right => $upper-right, 
+                                   delta => ($lower-left.re - $upper-right.re) / $size,
+                                   width => ($size / $height-ratio).Int, 
+                                   height => $size).build-window;
+                }
             }
         }
         when 3 {

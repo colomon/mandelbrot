@@ -10,6 +10,7 @@ my $lower-left = 1/2 - (5/4)i;
 say "Mouse left button: click and drag to define a zoom area";
 say "Mouse right button: click to create a Julia set for that point";
 say "Press 'm' to increase the number of iterations for a window";
+say "Press 's' to save the current window to a file";
 say "";
 
 my @color_map = (
@@ -302,6 +303,8 @@ class FractalSet {
         
         my $file = open $filename, :w;
         $file.say: "P3";
+        $file.say: "# $filename";
+        $file.say: "# $.upper-right $.delta $.max_iterations";
         $file.say: "$.width $.height";
         $file.say: "255";
         for @.rows -> $row {

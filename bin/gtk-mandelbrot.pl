@@ -293,6 +293,27 @@ class FractalSet {
         }
         return 0;
     }
+
+    my $file-count = 0;
+
+    method write-file() {
+        my $filename = $.is-julia ?? "julia-{ $file-count++ }.ppm" !! "mandelbrot-{ $file-count++ }.ppm";
+        say "Starting to write $filename";
+        
+        my $file = open $filename, :w;
+        $file.say: "P3";
+        $file.say: "$.width $.height";
+        $file.say: "255";
+        for @.rows -> $row {
+            for ^$row.Length -> $i {
+                $file.print: $row.GetValue($i).ToString ~ " ";
+                $file.say: "" if $i % 4 == 3;
+            }
+            $file.say: "";
+        }
+        $file.close;
+        say "$filename written";
+    }
 }
 
 Application.Init;
@@ -361,6 +382,9 @@ sub KeyReleaseEvent($obj, $args) {
     given $args.Event.Key {
         when 'm' | 'M' {
             $set.increase-max-iterations;
+        }
+        when 's' | 'S' {
+            $set.write-file;
         }
     }
 }

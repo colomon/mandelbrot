@@ -1,12 +1,16 @@
 use v6;
-
 use Threads;
 
 my $size = +(@*ARGS[0] // 321);
-my $max_iterations = 128;
+my $max_iterations = 50;
 
 my $upper-right = -2 + (5/4)i;
 my $lower-left = 1/2 - (5/4)i;
+
+say "Mouse left button: click and drag to define a zoom area";
+say "Mouse right button: click to create a Julia set for that point";
+say "Press 'm' to increase the number of iterations for a window";
+say "";
 
 my @color_map = (
     "0 0 0",
@@ -167,6 +171,7 @@ class FractalSet {
     has Real $.delta;
     has Int $.width;
     has Int $.height;
+    has Int $.max_iterations;
     has Complex $.c;
     has @.rows;
     has @.line-work-items;
@@ -205,7 +210,7 @@ class FractalSet {
                 my $c = $ur - $y * $delta * i;
 
                 while $counter < $counter_end {
-                    my $value = $is-julia ?? julia($julia-z0, $c) !! julia($c, 0i);
+                    my $value = $is-julia ?? self.julia($julia-z0, $c) !! self.julia($c, 0i);
                     $row.Set($counter++, @red[$value % 72]);
                     $row.Set($counter++, @green[$value % 72]);
                     $row.Set($counter++, @blue[$value % 72]);
@@ -232,6 +237,12 @@ class FractalSet {
         $.height = $height;
         self.start-work;
     }
+    
+    method increase-max-iterations() {
+        self.stop-work;
+        $.max_iterations += 32;
+        self.start-work;
+    }
 
     method xy-to-c($x, $y) {
         $.upper-right + $x * $.delta - $y * $.delta * i;
@@ -252,6 +263,7 @@ class FractalSet {
         self.start-work;
 
         my $window = Window.new($.is-julia ?? "julia $index" !! "mandelbrot $index");
+        $window.SetData("Id", SystemIntPtr.new($index));
         $window.Resize($.width, $.height);  # TODO: resize at runtime NYI
 
         my $event-box = GtkEventBox.new;
@@ -266,7 +278,20 @@ class FractalSet {
         $event-box.Add($drawingarea);
 
         $window.Add($event-box);
+        $window.add_KeyReleaseEvent(&KeyReleaseEvent);
         $window.ShowAll;
+    }
+
+    method julia(Complex $c, Complex $z0) {
+        my $z = $z0;
+        my $i;
+        loop ($i = 0; $i < $.max_iterations; $i++) {
+            if $z.abs > 2 {
+                return $i + 1;
+            }
+            $z = $z * $z + $c;
+        }
+        return 0;
     }
 }
 
@@ -277,7 +302,8 @@ FractalSet.new(is-julia => False,
                upper-right => $upper-right, 
                delta => ($lower-left.re - $upper-right.re) / $size,
                width => $size, 
-               height => $size).build-window;
+               height => $size,
+               max_iterations => $max_iterations).build-window;
 
 Application.Run;  # end of main program, it's all over when this returns
 
@@ -309,7 +335,8 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
                                    upper-right => $upper-right, 
                                    delta => ($lower-left.re - $upper-right.re) / $size,
                                    width => ($size / $height-ratio).Int, 
-                                   height => $size).build-window;
+                                   height => $size,
+                                   max_iterations => $set.max_iterations).build-window;
                 }
             }
         }
@@ -319,11 +346,23 @@ sub ButtonReleaseEvent($obj, $args) {  #OK not used
                           delta => (5 / 2) / $size,
                           width => $size, 
                           height => $size,
+                          max_iterations => $max_iterations,
                           c => $set.xy-to-c($args.Event.X, $args.Event.Y)).build-window;
         }
     }
     
     $set.forget-new-upper-right;
+}
+
+sub KeyReleaseEvent($obj, $args) {
+    my $index = $obj.GetData("Id").ToInt32();
+    my $set = @windows[$index];
+    
+    given $args.Event.Key {
+        when 'm' | 'M' {
+            $set.increase-max-iterations;
+        }
+    }
 }
 
 sub DeleteEvent($obj, $args) {  #OK not used
@@ -356,14 +395,3 @@ sub ExposeEvent($obj, $args)
     }
 };
 
-sub julia(Complex $c, Complex $z0) {
-    my $z = $z0;
-    my $i;
-    loop ($i = 0; $i < $max_iterations; $i++) {
-        if $z.abs > 2 {
-            return $i + 1;
-        }
-        $z = $z * $z + $c;
-    }
-    return 0;
-}

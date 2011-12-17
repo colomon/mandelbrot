@@ -197,6 +197,19 @@ class FractalSet {
         my $ur = $.upper-right;
         my $width = $.width;
         my $delta = $.delta;
+        my $max_iterations = $.max_iterations;
+        
+        sub julia(Complex $c, Complex $z0) {
+            my $z = $z0;
+            my $i;
+            loop ($i = 0; $i < $max_iterations; $i++) {
+                if $z.abs > 2 {
+                    return $i + 1;
+                }
+                $z = $z * $z + $c;
+            }
+            return 0;
+        }
         
         my @rows = @.rows = ByteArray.new($width * 3) xx $.height;
 
@@ -211,7 +224,7 @@ class FractalSet {
                 my $c = $ur - $y * $delta * i;
 
                 while $counter < $counter_end {
-                    my $value = $is-julia ?? self.julia($julia-z0, $c) !! self.julia($c, 0i);
+                    my $value = $is-julia ?? julia($julia-z0, $c) !! julia($c, 0i);
                     $row.Set($counter++, @red[$value % 72]);
                     $row.Set($counter++, @green[$value % 72]);
                     $row.Set($counter++, @blue[$value % 72]);
@@ -281,18 +294,6 @@ class FractalSet {
         $window.Add($event-box);
         $window.add_KeyReleaseEvent(&KeyReleaseEvent);
         $window.ShowAll;
-    }
-
-    method julia(Complex $c, Complex $z0) {
-        my $z = $z0;
-        my $i;
-        loop ($i = 0; $i < $.max_iterations; $i++) {
-            if $z.abs > 2 {
-                return $i + 1;
-            }
-            $z = $z * $z + $c;
-        }
-        return 0;
     }
 
     my $file-count = 0;

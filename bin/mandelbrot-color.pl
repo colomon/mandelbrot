@@ -2,13 +2,7 @@
 
 use v6;
 
-my $height = @*ARGS[0] // 31;
-$height = +$height;
-my $width = $height;
 my $max_iterations = 50;
-
-my $upper-right = -2.Num + (5/4.Num)i;
-my $lower-left = 1/2.Num - (5/4.Num)i;
 
 my @color_map = (
     "0 0 0",
@@ -244,16 +238,24 @@ sub mandel(Complex $c) {
 }
 
 sub subdivide($low, $high, $count) {
-    (^$count).map({ $low + ($_.Num / ($count - 1)) * ($high - $low) });
+    my $factor = (1.0 / ($count - 1)) * ($high - $low);
+    (^$count).map({ $low + $_ * $factor });
 }
 
-say "P3";
-say "$width $height";
-say "255";
+sub MAIN(Int $height = 31) {
+    my $width = $height;
 
-for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
-    my @line = subdivide($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2).map({ mandel($_) });
-    my $middle = @line.pop;
-    (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
+    my $upper-right = -2.Num + (5/4.Num)i;
+    my $lower-left = 1/2.Num - (5/4.Num)i;
+
+    say "P3";
+    say "$width $height";
+    say "255";
+
+    for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
+        my @line = subdivide($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2).map({ mandel($_) });
+        my $middle = @line.pop;
+        (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
+    }
 }
 

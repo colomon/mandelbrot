@@ -242,6 +242,13 @@ sub subdivide($low, $high, $count) {
     (^$count).map({ $low + $_ * $factor });
 }
 
+sub subdivide-for($low, $high, $count, &block) {
+    my $factor = (1.0 / ($count - 1)) * ($high - $low);
+    loop (my $i = 0; $i < $count; $i++) {
+        &block($i, $low + $i * $factor);
+    }
+}
+
 sub MAIN(Int $height = 31) {
     my $width = $height;
 
@@ -252,10 +259,11 @@ sub MAIN(Int $height = 31) {
     say "$width $height";
     say "255";
 
-    for subdivide($upper-right.re, $lower-left.re, $height) -> $re {
-        my @line = subdivide($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2).map({ mandel($_) });
+    subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
+        my @line;
+        subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z { @line[$i] = mandel($z) });
         my $middle = @line.pop;
         (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
-    }
+    })
 }
 

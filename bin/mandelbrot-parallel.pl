@@ -248,8 +248,8 @@ sub MAIN(Int $height = 31, :$max-iter = 50) {
     $max-iterations = $max-iter;
     my $width = $height;
 
-    my $upper-right = -2.Num + (5/4.Num)i;
-    my $lower-left = 1/2.Num - (5/4.Num)i;
+    my $upper-right = -2 + (5/4)i;
+    my $lower-left = 1/2 - (5/4)i;
 
     my @lines;
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {

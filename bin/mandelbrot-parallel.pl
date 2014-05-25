@@ -2,7 +2,7 @@
 
 use v6;
 
-my $max_iterations = 50;
+my $max-iterations = 50;
 
 my @color_map = (
     "0 0 0",
@@ -228,7 +228,7 @@ my @color_map = (
 sub mandel(Complex $c) {
     my $z = 0i;
     my $i;
-    loop ($i = 0; $i < $max_iterations; $i++) {
+    loop ($i = 0; $i < $max-iterations; $i++) {
         if ($z.abs > 2) {
             return $i + 1;
         }
@@ -249,15 +249,12 @@ sub subdivide-for($low, $high, $count, &block) {
     }
 }
 
-sub MAIN(Int $height = 31) {
+sub MAIN(Int $height = 31, :$max-iter = 50) {
+    $max-iterations = $max-iter;
     my $width = $height;
 
     my $upper-right = -2.Num + (5/4.Num)i;
     my $lower-left = 1/2.Num - (5/4.Num)i;
-
-    say "P3";
-    say "$width $height";
-    say "255";
 
     my @lines;
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
@@ -268,6 +265,11 @@ sub MAIN(Int $height = 31) {
             (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ');
         };
     });
+
+    say "P3";
+    say "$width $height";
+    say "255";
+
     for @lines -> $promise {
         say $promise.result;
     }

@@ -2,7 +2,7 @@
 
 use v6;
 
-my $max_iterations = 50;
+my $max-iterations = 50;
 
 my @color_map = (
     "0 0 0",
@@ -228,7 +228,7 @@ my @color_map = (
 sub mandel(Complex $c) {
     my $z = 0i;
     my $i;
-    loop ($i = 0; $i < $max_iterations; $i++) {
+    loop ($i = 0; $i < $max-iterations; $i++) {
         if ($z.abs > 2) {
             return $i + 1;
         }
@@ -249,7 +249,8 @@ sub subdivide-for($low, $high, $count, &block) {
     }
 }
 
-sub MAIN(Int $height = 31) {
+sub MAIN(Int $height = 31, :$max-iter = 50) {
+    $max-iterations = $max-iter;
     my $width = $height;
 
     my $upper-right = -2.Num + (5/4.Num)i;

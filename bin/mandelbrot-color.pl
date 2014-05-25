@@ -237,11 +237,6 @@ sub mandel(Complex $c) {
     return 0;
 }
 
-sub subdivide($low, $high, $count) {
-    my $factor = (1.0 / ($count - 1)) * ($high - $low);
-    (^$count).map({ $low + $_ * $factor });
-}
-
 sub subdivide-for($low, $high, $count, &block) {
     my $factor = (1.0 / ($count - 1)) * ($high - $low);
     loop (my $i = 0; $i < $count; $i++) {
@@ -262,9 +257,10 @@ sub MAIN(Int $height = 31, :$max-iter = 50) {
 
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
         my @line;
-        subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z { @line[$i] = mandel($z) });
-        my $middle = @line.pop;
-        (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
+        subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z {
+            @line[$width - $i - 1] = @line[$i] = mandel($z);
+        });
+        @line.map({ @color_map[$_] }).join(' ').say;
     })
 }
 

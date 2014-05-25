@@ -237,11 +237,6 @@ sub mandel(Complex $c) {
     return 0;
 }
 
-sub subdivide($low, $high, $count) {
-    my $factor = (1.0 / ($count - 1)) * ($high - $low);
-    (^$count).map({ $low + $_ * $factor });
-}
-
 sub subdivide-for($low, $high, $count, &block) {
     my $factor = (1.0 / ($count - 1)) * ($high - $low);
     loop (my $i = 0; $i < $count; $i++) {

@@ -259,11 +259,17 @@ sub MAIN(Int $height = 31) {
     say "$width $height";
     say "255";
 
+    my @lines;
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
-        my @line;
-        subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z { @line[$i] = mandel($z) });
-        my $middle = @line.pop;
-        (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ').say;
-    })
+        @lines[$i] = start {
+            my @line;
+            subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z { @line[$i] = mandel($z) });
+            my $middle = @line.pop;
+            (@line, $middle, @line.reverse).map({ @color_map[$_] }).join(' ');
+        };
+    });
+    for @lines -> $promise {
+        say $promise.result;
+    }
 }
 

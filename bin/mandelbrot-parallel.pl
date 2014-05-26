@@ -249,8 +249,8 @@ sub mandelbrot($height, $width, $upper-right, $lower-left) {
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
         @lines[$i] = start {
             my @line;
-            subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z {
-                @line[$width - $i - 1] = @line[$i] = mandel($z);
+            subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $j, $z {
+                @line[$width - $j - 1] = @line[$j] = mandel($z);
             });
             @line.map(-> $value { @color_map[$value] }).join(' ');
         };

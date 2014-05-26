@@ -244,13 +244,7 @@ sub subdivide-for($low, $high, $count, &block) {
     }
 }
 
-sub MAIN(Int $height = 31, :$max-iter = 50) {
-    $max-iterations = $max-iter;
-    my $width = $height +| 1;
-
-    my $upper-right = -2 + (5/4)i;
-    my $lower-left = 1/2 - (5/4)i;
-
+sub mandelbrot($height, $width, $upper-right, $lower-left) {
     my @lines;
     subdivide-for($upper-right.re, $lower-left.re, $height, -> $i, $re {
         @lines[$i] = start {
@@ -269,5 +263,14 @@ sub MAIN(Int $height = 31, :$max-iter = 50) {
     for @lines -> $promise {
         say $promise.result;
     }
+}
+
+sub MAIN(Int $height = 31, :$max-iter = 50) {
+    $max-iterations = $max-iter;
+
+    my $upper-right = -2 + (5/4)i;
+    my $lower-left = 1/2 - (5/4)i;
+
+    mandelbrot($height +| 1, $height +| 1, $upper-right, $lower-left);
 }
 

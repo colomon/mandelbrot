@@ -246,7 +246,7 @@ sub subdivide-for($low, $high, $count, &block) {
 
 sub MAIN(Int $height = 31, :$max-iter = 50) {
     $max-iterations = $max-iter;
-    my $width = $height;
+    my $width = $height +| 1;
 
     my $upper-right = -2 + (5/4)i;
     my $lower-left = 1/2 - (5/4)i;

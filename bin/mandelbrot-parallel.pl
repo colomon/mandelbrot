@@ -246,7 +246,7 @@ sub subdivide-for($low, $high, $count, &block) {
 
 sub MAIN(Int $height = 31, :$max-iter = 50) {
     $max-iterations = $max-iter;
-    my $width = $height;
+    my $width = $height +| 1;
 
     my $upper-right = -2 + (5/4)i;
     my $lower-left = 1/2 - (5/4)i;
@@ -258,7 +258,7 @@ sub MAIN(Int $height = 31, :$max-iter = 50) {
             subdivide-for($re + ($upper-right.im)i, $re + 0i, ($width + 1) / 2, -> $i, $z {
                 @line[$width - $i - 1] = @line[$i] = mandel($z);
             });
-            @line.map({ @color_map[$_] }).join(' ');
+            @line.map(-> $value { @color_map[$value] }).join(' ');
         };
     });
 
